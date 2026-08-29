@@ -4,15 +4,15 @@
 
 ## Run
 
-From the project root:
+Add a books folder in the project root and run the command from the project root:
 
 ```powershell
-python -m app.main .\books
+python -m app.main .\[books folder]
 ```
 
 ## Runtime Config
 
-The UI can be customized without rebuilding by editing `typing-reader.conf`.
+The UI can be customized by editing `typing-reader.conf`.
 
 Search order for the config file:
 
@@ -69,7 +69,7 @@ idle = yellow
 done = bold green
 ```
 
-Notes:
+Config options:
 - `library_path` points to the folder containing your book folders.
 - `width` controls the render width used by the session view.
 - `idle_timeout_seconds` controls when the idle screen appears and WPM pauses.
