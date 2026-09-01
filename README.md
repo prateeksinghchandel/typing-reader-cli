@@ -10,6 +10,9 @@ Add a books folder in the project root and run the command from the project root
 python -m app.main .\[books folder]
 ```
 
+## Demo:
+[![Watch The  Demo]](typing-reader-cli.mp4)
+
 ## Runtime Config
 
 The UI can be customized by editing `typing-reader.conf`.

@@ -1,0 +1,8 @@
+{
+  "config_path": "/home/spectator/Projects/typing-reader-cli/typing-reader.conf",
+  "idle_timeout_seconds": 5.0,
+  "last_book": "The King in Yellow",
+  "last_chapter": "1. The Reaper of Reputation.txt",
+  "library_path": "books",
+  "width": 80
+}

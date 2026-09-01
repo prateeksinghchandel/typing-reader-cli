@@ -1,0 +1,14 @@
+{
+  "last_session": {
+    "accuracy": 90.9090909090909,
+    "completed": false,
+    "correct": 10,
+    "duration_seconds": 17.882151746999625,
+    "idle_seconds": 0.0,
+    "incorrect": 1,
+    "target_length": 35577,
+    "typed_length": 11,
+    "wall_seconds": 17.882151746999625,
+    "words_per_minute": 7.381661998374875
+  }
+}
