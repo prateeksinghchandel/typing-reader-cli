@@ -11,8 +11,7 @@ python -m app.main .\[books folder]
 ```
 
 ## Demo:
-![](./tping-reader-cli.mp4)
-<video src="./tping-reader-cli.mp4" controls preload></video>
+![DEMO Video](typing-reader-cli.mp4)
 
 ## Runtime Config
 

@@ -1,7 +1,6 @@
-from enum import Enum 
+from enum import Enum
 
 class CharState(Enum):
-    # UNTOUCHED = 1
     CORRECT = 1
     INCORRECT = 2
 
@@ -12,7 +11,7 @@ class TypingEngine:
         self.cursor=0
         self.correct=0
         self.incorrect=0
-        self.states: list[CharState] = []
+        self.states: dict[int, CharState] = {}
 
     def process_key(self,ch: str) -> None:
         if self.finished():
@@ -22,19 +21,19 @@ class TypingEngine:
 
         if ch==expected:
             self.correct+=1
-            self.states.append(CharState.CORRECT)
+            self.states[self.cursor]=CharState.CORRECT
         else:
             self.incorrect+=1
-            self.states.append(CharState.INCORRECT)
+            self.states[self.cursor]=CharState.INCORRECT
         self.cursor+=1
 
     def backspace(self):
         if self.cursor != 0:
-            temp=self.states.pop()
             self.cursor-=1
-            if temp == CharState.CORRECT:
+            state = self.states.pop(self.cursor, None)
+            if state == CharState.CORRECT:
                 self.correct-=1
-            elif temp == CharState.INCORRECT:
+            elif state == CharState.INCORRECT:
                 self.incorrect-=1   
         
     def get_accuracy(self) -> float:
@@ -55,7 +54,4 @@ class TypingEngine:
         return self.cursor
 
     def get_state(self, index:int) -> CharState | None:
-        if index < 0 or index >= len(self.states):
-            return None
-        return self.states[index]
-    
+        return self.states.get(index)

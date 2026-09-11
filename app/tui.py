@@ -17,9 +17,18 @@ from app.reader import Reader
 from app.stats import build_session_stats
 
 
-def build_target_text(target: str, engine: TypingEngine, config: RuntimeConfig) -> Text:
+def build_target_text(
+    target: str,
+    engine: TypingEngine,
+    config: RuntimeConfig,
+    start: int = 0,
+    end: int | None = None,
+) -> Text:
+    if end is None:
+        end = len(target)
     text = Text()
-    for index, character in enumerate(target):
+    for index in range(start, min(end, len(target))):
+        character = target[index]
         state = engine.get_state(index)
         if state == CharState.CORRECT:
             style = config.correct_style
@@ -248,6 +257,7 @@ class TypingSessionScreen(Screen[dict[str, object]]):
         width: int,
         idle_timeout_seconds: float,
         runtime_config: RuntimeConfig,
+        page_size: int = 4096,
     ) -> None:
         super().__init__()
         self.book_name = book_name
@@ -255,7 +265,8 @@ class TypingSessionScreen(Screen[dict[str, object]]):
         self.render_width = width
         self.idle_timeout_seconds = idle_timeout_seconds
         self.runtime_config = runtime_config
-        self.reader = Reader()
+        self.page_size = page_size
+        self.reader = Reader(page_size=page_size)
         self.target = self.reader.load(chapter_path)
         self.engine = TypingEngine(self.target)
         self.wall_started_at = perf_counter()
@@ -265,6 +276,20 @@ class TypingSessionScreen(Screen[dict[str, object]]):
         self.idle = False
         self._content: Static | None = None
         self._status: Static | None = None
+        self._viewport_start = 0
+        self._viewport_end = len(self.target)
+
+    def _update_viewport(self) -> None:
+        try:
+            screen_height = self.size.height
+        except Exception:
+            screen_height = 24
+        terminal_height = max(10, screen_height - 4)
+        visible_lines = max(5, terminal_height - 2)
+        visible_chars = visible_lines * self.render_width
+        cursor = self.engine.current_index()
+        self._viewport_start = max(0, cursor - visible_chars // 2)
+        self._viewport_end = min(len(self.target), self._viewport_start + visible_chars)
 
     def compose(self) -> ComposeResult:
         if self.runtime_config.show_header:
@@ -285,6 +310,7 @@ class TypingSessionScreen(Screen[dict[str, object]]):
         self.set_interval(self.runtime_config.tick_interval_seconds, self._tick)
         if self._content is not None:
             self._content.styles.width = self.render_width
+        self._update_viewport()
         self._refresh_view(perf_counter())
 
     def _active_elapsed(self, now: float) -> float:
@@ -296,8 +322,11 @@ class TypingSessionScreen(Screen[dict[str, object]]):
         return max(0.0, now - self.wall_started_at)
 
     def _refresh_view(self, now: float) -> None:
+        self._update_viewport()
         if self._content is not None:
-            self._content.update(build_target_text(self.target, self.engine, self.runtime_config))
+            self._content.update(
+                build_target_text(self.target, self.engine, self.runtime_config, self._viewport_start, self._viewport_end)
+            )
         if self._status is not None:
             self._status.update(
                 build_status_text(
@@ -463,6 +492,7 @@ def make_typing_trainer_app(runtime_config: RuntimeConfig) -> type[App[dict[str,
                     width=self.render_width,
                     idle_timeout_seconds=self.idle_timeout_seconds,
                     runtime_config=self.runtime_config,
+                    page_size=self.runtime_config.page_size,
                 ),
                 self._on_session_finished,
             )

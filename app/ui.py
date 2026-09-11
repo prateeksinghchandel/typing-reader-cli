@@ -34,6 +34,21 @@ def render_target(target: str, engine: TypingEngine) -> str:
     return "".join(rendered)
 
 
+def render_target_viewport(
+    target: str,
+    engine: TypingEngine,
+    start: int = 0,
+    end: int | None = None,
+) -> str:
+    if end is None:
+        end = len(target)
+    rendered: list[str] = []
+    for index in range(start, min(end, len(target))):
+        character = target[index]
+        rendered.append(colorize(character, engine.get_state(index)))
+    return "".join(rendered)
+
+
 def render_session(
     *,
     title: str,
@@ -41,6 +56,8 @@ def render_session(
     engine: TypingEngine,
     elapsed_seconds: float,
     width: int | None = None,
+    viewport_start: int = 0,
+    viewport_end: int | None = None,
 ) -> str:
     total_width = width or terminal_width()
     header = f"{BOLD}{title}{RESET}"
@@ -51,7 +68,7 @@ def render_session(
     )
     if engine.finished():
         status += f"  {YELLOW}Done{RESET}"
-    body = render_target(target, engine)
+    body = render_target_viewport(target, engine, viewport_start, viewport_end)
     separator = "-" * min(total_width, max(len(title), 10))
     return "\n".join([header, separator, body, "", status])
 
@@ -65,6 +82,8 @@ def render_idle_session(
     wall_seconds: float,
     idle_timeout_seconds: float,
     width: int | None = None,
+    viewport_start: int = 0,
+    viewport_end: int | None = None,
 ) -> str:
     total_width = width or terminal_width()
     session_view = render_session(
@@ -73,6 +92,8 @@ def render_idle_session(
         engine=engine,
         elapsed_seconds=active_seconds,
         width=total_width,
+        viewport_start=viewport_start,
+        viewport_end=viewport_end,
     )
     idle_note = (
         f"{YELLOW}Idle{RESET}: WPM is paused after "

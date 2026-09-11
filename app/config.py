@@ -45,6 +45,7 @@ class RuntimeConfig:
     summary_continue_prompt: str = "Press any key to continue. Esc or Ctrl+C quits."
     summary_title_style: str = "bold"
     summary_prompt_style: str = "yellow"
+    page_size: int = 4096
 
 
 def _parse_bool(value: str | None, default: bool) -> bool:
@@ -166,6 +167,7 @@ def load_runtime_config(path: str | Path | None = None) -> tuple[RuntimeConfig, 
         ),
         summary_title_style=ui_section.get("summary_title_style", "bold"),
         summary_prompt_style=ui_section.get("summary_prompt_style", "yellow"),
+        page_size=_parse_positive_int(app_section.get("page_size"), 4096),
     )
     return config, resolved_path
 

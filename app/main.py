@@ -309,14 +309,24 @@ def run_textual_typing_session(
             idle_timeout_seconds=idle_timeout_seconds,
         )
 
+    cfg = runtime_config or RuntimeConfig()
     return run_textual_session(
         library_path=library_path,
         book_name=book_name,
         chapter_path=chapter_path,
         width=width,
         idle_timeout_seconds=idle_timeout_seconds,
-        runtime_config=runtime_config or RuntimeConfig(),
+        runtime_config=cfg,
     )
+
+
+def _get_viewport_range(target: str, engine: TypingEngine, width: int, height: int) -> tuple[int, int]:
+    visible_lines = max(5, height - 4)
+    visible_chars = visible_lines * width
+    cursor = engine.current_index()
+    start = max(0, cursor - visible_chars // 2)
+    end = min(len(target), start + visible_chars)
+    return start, end
 
 
 def run_typing_session(
@@ -327,18 +337,22 @@ def run_typing_session(
     idle_timeout_seconds: float = DEFAULT_IDLE_TIMEOUT_SECONDS,
     key_reader: KeyReader | None = None,
     clock=perf_counter,
+    runtime_config: RuntimeConfig | None = None,
 ) -> dict[str, object]:
-    reader = Reader()
+    cfg = runtime_config or RuntimeConfig()
+    reader = Reader(page_size=cfg.page_size)
     target = reader.load(chapter_path)
     engine = TypingEngine(target)
     input_reader = key_reader or create_key_reader()
     timer = SessionTimer.start(clock())
     last_event_now = timer.wall_started_at
+    height = 24
 
     try:
         while not engine.finished():
             display_now = clock()
             clear_screen()
+            viewport_start, viewport_end = _get_viewport_range(target, engine, width, height)
             if timer.idle:
                 print(
                     ui.render_idle_session(
@@ -349,6 +363,8 @@ def run_typing_session(
                         wall_seconds=timer.wall_elapsed(display_now),
                         idle_timeout_seconds=idle_timeout_seconds,
                         width=width,
+                        viewport_start=viewport_start,
+                        viewport_end=viewport_end,
                     )
                 )
             else:
@@ -359,6 +375,8 @@ def run_typing_session(
                         engine=engine,
                         elapsed_seconds=timer.active_elapsed(display_now),
                         width=width,
+                        viewport_start=viewport_start,
+                        viewport_end=viewport_end,
                     )
                 )
 
