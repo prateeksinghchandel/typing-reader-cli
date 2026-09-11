@@ -1,3 +1,7 @@
+
+
+https://github.com/user-attachments/assets/cfe787fb-071f-4696-9d98-084a76e39b85
+
 # typing-reader-cli
 
  A cli typing trainer that helps you learn typing while reading your favourite books.
@@ -11,7 +15,10 @@ python -m app.main .\[books folder]
 ```
 
 ## Demo:
-![DEMO Video](typing-reader-cli.mp4)
+
+https://github.com/user-attachments/assets/638c280e-6f7a-482d-96ed-cf5e9677a68e
+
+
 
 ## Runtime Config
 
