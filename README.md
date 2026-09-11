@@ -10,12 +10,6 @@ Add a books folder in the project root and run the command from the project root
 python -m app.main .\[books folder]
 ```
 
-## Demo:
-
-https://github.com/user-attachments/assets/638c280e-6f7a-482d-96ed-cf5e9677a68e
-
-
-
 ## Runtime Config
 
 The UI can be customized by editing `typing-reader.conf`.
