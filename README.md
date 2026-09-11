@@ -1,7 +1,3 @@
-
-
-https://github.com/user-attachments/assets/cfe787fb-071f-4696-9d98-084a76e39b85
-
 # typing-reader-cli
 
  A cli typing trainer that helps you learn typing while reading your favourite books.
