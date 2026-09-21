@@ -29,7 +29,7 @@ def render_target(target: str, engine: TypingEngine) -> str:
     rendered: list[str] = []
     for index, character in enumerate(target):
         rendered.append(colorize(character, engine.get_state(index)))
-    if engine.finished() and not target:
+    if not target:
         return ""
     return "".join(rendered)
 
@@ -47,6 +47,10 @@ def render_target_viewport(
         character = target[index]
         rendered.append(colorize(character, engine.get_state(index)))
     return "".join(rendered)
+
+
+def _render_separator(title: str, total_width: int) -> str:
+    return "-" * min(total_width, max(len(title), 10))
 
 
 def render_session(
@@ -69,7 +73,7 @@ def render_session(
     if engine.finished():
         status += f"  {YELLOW}Done{RESET}"
     body = render_target_viewport(target, engine, viewport_start, viewport_end)
-    separator = "-" * min(total_width, max(len(title), 10))
+    separator = _render_separator(title, total_width)
     return "\n".join([header, separator, body, "", status])
 
 
@@ -101,7 +105,7 @@ def render_idle_session(
         "Press any key to continue."
     )
     wall_note = f"{CYAN}Wall time{RESET}: {wall_seconds:.1f}s"
-    separator = "-" * min(total_width, max(len(title), 10))
+    separator = _render_separator(title, total_width)
     return "\n".join([session_view, separator, wall_note, idle_note])
 
 

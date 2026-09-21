@@ -14,6 +14,7 @@ from app.config import RuntimeConfig, build_textual_css
 from app.engine import CharState, TypingEngine
 from app.loader import BookLoader
 from app.reader import Reader
+from app.state import SessionTimer, get_viewport_range
 from app.stats import build_session_stats
 
 
@@ -269,27 +270,12 @@ class TypingSessionScreen(Screen[dict[str, object]]):
         self.reader = Reader(page_size=page_size)
         self.target = self.reader.load(chapter_path)
         self.engine = TypingEngine(self.target)
-        self.wall_started_at = perf_counter()
-        self.active_started_at = self.wall_started_at
-        self.active_seconds = 0.0
-        self.last_activity_at = self.wall_started_at
-        self.idle = False
+        self.timer = SessionTimer(perf_counter())
+        self.last_activity_at = self.timer.wall_started_at
         self._content: Static | None = None
         self._status: Static | None = None
         self._viewport_start = 0
         self._viewport_end = len(self.target)
-
-    def _update_viewport(self) -> None:
-        try:
-            screen_height = self.size.height
-        except Exception:
-            screen_height = 24
-        terminal_height = max(10, screen_height - 4)
-        visible_lines = max(5, terminal_height - 2)
-        visible_chars = visible_lines * self.render_width
-        cursor = self.engine.current_index()
-        self._viewport_start = max(0, cursor - visible_chars // 2)
-        self._viewport_end = min(len(self.target), self._viewport_start + visible_chars)
 
     def compose(self) -> ComposeResult:
         if self.runtime_config.show_header:
@@ -313,13 +299,15 @@ class TypingSessionScreen(Screen[dict[str, object]]):
         self._update_viewport()
         self._refresh_view(perf_counter())
 
-    def _active_elapsed(self, now: float) -> float:
-        if self.idle:
-            return self.active_seconds
-        return self.active_seconds + max(0.0, now - self.active_started_at)
-
-    def _wall_elapsed(self, now: float) -> float:
-        return max(0.0, now - self.wall_started_at)
+    def _update_viewport(self) -> None:
+        try:
+            screen_height = self.size.height
+        except Exception:
+            screen_height = 24
+        height = max(10, screen_height - 4)
+        self._viewport_start, self._viewport_end = get_viewport_range(
+            self.target, self.engine.current_index(), self.render_width, height
+        )
 
     def _refresh_view(self, now: float) -> None:
         self._update_viewport()
@@ -336,32 +324,17 @@ class TypingSessionScreen(Screen[dict[str, object]]):
                         self.chapter_path.name,
                     ),
                     engine=self.engine,
-                    idle=self.idle,
+                    idle=self.timer.idle,
                     config=self.runtime_config,
                 )
             )
 
-    def _set_idle(self, now: float) -> None:
-        if not self.idle:
-            self.active_seconds += max(0.0, now - self.active_started_at)
-            self.active_started_at = now
-            self.idle = True
-
-    def _resume(self, now: float) -> None:
-        self.last_activity_at = now
-        if self.idle:
-            self.idle = False
-            self.active_started_at = now
-
     def _finalize_result(self, now: float) -> dict[str, object]:
-        if not self.idle:
-            self.active_seconds += max(0.0, now - self.active_started_at)
-            self.active_started_at = now
         stats = build_session_stats(
             self.target,
             self.engine,
-            self.active_seconds,
-            wall_seconds=self._wall_elapsed(now),
+            self.timer.active_elapsed(now),
+            wall_seconds=self.timer.wall_elapsed(now),
         )
         progress = {
             "book": self.book_name,
@@ -378,19 +351,18 @@ class TypingSessionScreen(Screen[dict[str, object]]):
 
     def _tick(self) -> None:
         now = perf_counter()
-        if not self.engine.finished() and not self.idle:
+        if not self.engine.finished() and not self.timer.idle:
             if now - self.last_activity_at >= self.idle_timeout_seconds:
-                self._set_idle(now)
+                self.timer.mark_timeout(now)
         self._refresh_view(now)
 
     def action_finish(self) -> None:
-        self.dismiss(self._finalize_result(perf_counter()))
+        now = perf_counter()
+        self.dismiss(self._finalize_result(now))
 
     def on_key(self, event: events.Key) -> None:
         now = perf_counter()
-        if self.idle:
-            self._resume(now)
-
+        self.timer.resume(now)
         self.last_activity_at = now
 
         if event.key == "backspace":

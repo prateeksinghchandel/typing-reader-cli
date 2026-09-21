@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from app.config import RuntimeConfig, load_runtime_config
+from app.constants import PROJECT_ROOT
 from app.engine import TypingEngine
 from app.loader import BookLoader
 from app.reader import Reader
@@ -23,8 +24,6 @@ from app.storage import (
 )
 from app import ui
 
-
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_LIBRARY_DIR = PROJECT_ROOT / "books"
 DEFAULT_IDLE_TIMEOUT_SECONDS = 10.0
 POLL_INTERVAL_SECONDS = 0.05
@@ -191,35 +190,7 @@ def _resolve_idle_timeout_seconds(
     return DEFAULT_IDLE_TIMEOUT_SECONDS
 
 
-@dataclass
-class SessionTimer:
-    wall_started_at: float
-    active_checkpoint: float
-    active_seconds: float = 0.0
-    idle: bool = False
-
-    @classmethod
-    def start(cls, now: float) -> "SessionTimer":
-        return cls(wall_started_at=now, active_checkpoint=now)
-
-    def mark_timeout(self, now: float) -> None:
-        if not self.idle:
-            self.idle = True
-            self.active_checkpoint = now
-
-    def mark_key_event(self, now: float) -> None:
-        if not self.idle:
-            self.active_seconds += max(0.0, now - self.active_checkpoint)
-        self.active_checkpoint = now
-        self.idle = False
-
-    def active_elapsed(self, now: float) -> float:
-        if self.idle:
-            return self.active_seconds
-        return self.active_seconds + max(0.0, now - self.active_checkpoint)
-
-    def wall_elapsed(self, now: float) -> float:
-        return max(0.0, now - self.wall_started_at)
+from app.state import SessionTimer, get_viewport_range
 
 
 class WindowsPollingKeyReader:
@@ -320,15 +291,6 @@ def run_textual_typing_session(
     )
 
 
-def _get_viewport_range(target: str, engine: TypingEngine, width: int, height: int) -> tuple[int, int]:
-    visible_lines = max(5, height - 4)
-    visible_chars = visible_lines * width
-    cursor = engine.current_index()
-    start = max(0, cursor - visible_chars // 2)
-    end = min(len(target), start + visible_chars)
-    return start, end
-
-
 def run_typing_session(
     *,
     book_name: str,
@@ -344,7 +306,7 @@ def run_typing_session(
     target = reader.load(chapter_path)
     engine = TypingEngine(target)
     input_reader = key_reader or create_key_reader()
-    timer = SessionTimer.start(clock())
+    timer = SessionTimer(clock())
     last_event_now = timer.wall_started_at
     height = 24
 
@@ -352,7 +314,7 @@ def run_typing_session(
         while not engine.finished():
             display_now = clock()
             clear_screen()
-            viewport_start, viewport_end = _get_viewport_range(target, engine, width, height)
+            viewport_start, viewport_end = get_viewport_range(target, engine.current_index(), width, height)
             if timer.idle:
                 print(
                     ui.render_idle_session(

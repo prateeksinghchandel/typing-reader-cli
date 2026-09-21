@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+from app.constants import PROJECT_ROOT
 DATA_DIR = PROJECT_ROOT / "data"
 SETTINGS_FILE = DATA_DIR / "settings.json"
 PROGRESS_FILE = DATA_DIR / "progress.json"
